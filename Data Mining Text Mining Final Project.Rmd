@@ -1,0 +1,103 @@
+---
+title: "Data Mining Text Mining Final Project"
+author: "Madison Yonash"
+date: "2023-10-30"
+output: html_document
+---
+# Data Preprocessing
+
+```{r}
+#Load Packages
+library(tidyverse)
+library(taylor)
+library(tidytext)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
+```
+
+```{r}
+#Install packages as needed
+
+```
+
+
+```{r}
+songs <- taylor_album_songs
+```
+
+```{r}
+glimpse(songs)
+```
+
+```{r}
+tidy_taylor <-
+    taylor_album_songs  %>% 
+    unnest(lyrics)  %>%  
+    unnest_tokens(word, lyric)
+```
+
+```{r}
+tidy_taylor %>% 
+    anti_join(get_stopwords())  %>%  
+    count(track_name, word, sort = TRUE)
+```
+
+
+
+# Exploratory Data Analysis
+
+```{r}
+
+```
+
+
+# PCA
+
+```{r}
+
+```
+
+# Text Analysis
+
+```{r}
+#Create a word cloud to visualize frequent words
+#Creating list of stop words to exclude
+word <- c("oh","ooh","eh","ha","mmm","mm", "yeah","ah","hey","eeh","uuh","uh","la","da","di","ra","huh","hu","whoa","gonna","wanna","gotta","em")
+lexicon <- c(rep("mine",length(word)))
+mystopwords <- cbind(word,lexicon)
+mystopwords <- rbind(stop_words,mystopwords)
+  
+#Data preparation
+lyric_tokens <- songs %>% 
+  select(lyrics) %>% 
+  unnest(lyrics)  %>%
+  unnest_tokens(input = lyric , output = "word") %>% 
+  count(word,sort=TRUE) %>% 
+  anti_join(mystopwords,by="word") %>%
+  filter(n>10)
+
+#Word cloud
+wordcloud(words = lyric_tokens$word,
+          freq = lyric_tokens$n,
+          scale = c(4,.4),
+          max.words = 200,
+          colors = "red"
+           ) 
+```
+```{r}
+
+all_lyrics <- paste(lyrics_token$word,
+                    sep="")
+get_sentiments(all_lyrics)
+```
+
+
+
+```{r}
+
+```
+
+
+
