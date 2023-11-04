@@ -15,11 +15,15 @@ library(tm)
 library(SnowballC)
 library(wordcloud)
 library(RColorBrewer)
+library(textdata)
+library(knitr)
+library(kableExtra)
+library(formattable)
 ```
 
 ```{r}
 #Install packages as needed
-
+#install.packages("formattable")
 ```
 
 
@@ -32,10 +36,17 @@ glimpse(songs)
 ```
 
 ```{r}
+my_words <- c("oh","ooh","eh","ha","mmm","mm", "yeah","ah","hey","eeh","uuh","uh","la","da","di","ra","huh","hu","whoa","gonna","wanna","gotta","em")
+
 tidy_taylor <-
-    taylor_album_songs  %>% 
-    unnest(lyrics)  %>%  
-    unnest_tokens(word, lyric)
+  taylor_album_songs  %>% 
+  unnest(lyrics)  %>%  
+  unnest_tokens(word, lyric) %>% 
+  filter(!word %in% my_words) %>% #Remove undesirables
+  filter(!nchar(word) < 3) %>% #Words like "ah" or "oo" used in music
+  anti_join(stop_words)
+
+glimpse(tidy_taylor)
 ```
 
 ```{r}
@@ -81,23 +92,48 @@ lyric_tokens <- songs %>%
 #Word cloud
 wordcloud(words = lyric_tokens$word,
           freq = lyric_tokens$n,
-          scale = c(4,.4),
+          scale = c(3.9,.4),
           max.words = 200,
           colors = "red"
            ) 
 ```
 ```{r}
-
-all_lyrics <- paste(lyrics_token$word,
-                    sep="")
-get_sentiments(all_lyrics)
+new_sentiments <- get_sentiments("afinn")
+names(new_sentiments)[names(new_sentiments) == 'value'] <- 'score'
+new_sentiments <- new_sentiments %>% mutate(lexicon = "afinn", sentiment = ifelse(score >= 0, "positive", "nega1tive"),
+                                                     words_in_lexicon = n_distinct((word)))
 ```
 
 
 
 ```{r}
+bing_taylor <- tidy_taylor %>%
+  inner_join(get_sentiments("bing"))
 
+nrc_taylor <- tidy_taylor %>%
+  inner_join(get_sentiments("nrc"))
+
+nrc_sub_taylor <- tidy_taylor %>%
+  inner_join(get_sentiments("nrc")) %>%
+  filter(!sentiment %in% c("positive", "negative"))
 ```
 
+```{r}
+nrc_plot <- nrc_taylor %>%
+  group_by(sentiment) %>%
+  summarise(word_count = n()) %>%
+  ungroup() %>%
+  mutate(sentiment = reorder(sentiment, word_count)) %>%
+  #Use `fill = -word_count` to make the larger bars darker
+  ggplot(aes(sentiment, word_count, fill = -word_count)) +
+  geom_col() +
+  guides(fill = FALSE) + #Turn off the legend
+  labs(x = NULL, y = "Word Count") +
+  scale_y_continuous(limits = c(0, 3000)) + #Hard code the axis limit
+  ggtitle("Taylor NRC Sentiment") +
+  coord_flip()
+
+nrc_plot
+```
 
 
