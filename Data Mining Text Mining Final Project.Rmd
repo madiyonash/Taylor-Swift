@@ -19,11 +19,12 @@ library(textdata)
 library(knitr)
 library(kableExtra)
 library(formattable)
+library(gridExtra)
 ```
 
 ```{r}
 #Install packages as needed
-#install.packages("formattable")
+#install.packages("gridExtra")
 ```
 
 
@@ -92,9 +93,9 @@ lyric_tokens <- songs %>%
 #Word cloud
 wordcloud(words = lyric_tokens$word,
           freq = lyric_tokens$n,
-          scale = c(3.9,.4),
-          max.words = 200,
-          colors = "red"
+          scale = c(4,.5),
+          max.words = 150,
+          colors = "#B59410"
            ) 
 ```
 ```{r}
@@ -130,10 +131,69 @@ nrc_plot <- nrc_taylor %>%
   guides(fill = FALSE) + #Turn off the legend
   labs(x = NULL, y = "Word Count") +
   scale_y_continuous(limits = c(0, 3000)) + #Hard code the axis limit
-  ggtitle("Taylor NRC Sentiment") +
+  ggtitle("Taylor Swift NRC Sentiment") +
+  theme_minimal() +
   coord_flip()
 
-nrc_plot
+nrc_plot + scale_fill_taylor_c(album = "Fearless (Taylor's Version)")
+```
+
+```{r}
+bing_plot <- bing_taylor %>%
+  group_by(sentiment) %>%
+  summarise(word_count = n()) %>%
+  ungroup() %>%
+  mutate(sentiment = reorder(sentiment, word_count)) %>%
+  ggplot(aes(sentiment, word_count, fill = sentiment)) +
+  geom_col() +
+  guides(fill = FALSE) +
+  scale_fill_manual(values=c("#66a358", "#8c1c08")) +
+  theme_minimal() +
+  labs(x = NULL, y = "Word Count") +
+  scale_y_continuous(limits = c(0, 3000)) +
+  ggtitle("Taylor Swift Bing Sentiment") +
+  coord_flip()
+
+bing_plot 
+```
+
+```{r}
+taylor_polarity_chart <- bing_taylor %>%
+  count(sentiment, album_name) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(polarity = positive - negative,
+    percent_positive = positive / (positive + negative) * 100)
+
+#Percent positive by chart
+pos_chart <- taylor_polarity_chart %>%
+  ggplot( aes(x = factor(album_name, album_levels), percent_positive, fill = album_name)) +
+  geom_col() +
+  scale_fill_taylor_d(album = "Fearless (Taylor's Version)") +
+  geom_hline(yintercept = 0) +
+  theme_minimal() + theme(plot.title = element_text(size = 11)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Percent Positive By Album") +
+  theme(legend.position = "none") +
+  coord_flip()
+
+pos_chart
+
+```
+
+```{r}
+#Polarity by chart
+polarity_chart <- taylor_polarity_chart %>%
+  ggplot( aes(x = factor(album_name, album_levels), polarity, fill = album_name)) +
+  geom_col() +
+  scale_fill_taylor_d(album = "Fearless (Taylor's Version)") +
+  geom_hline(yintercept = 0) +
+  theme_minimal() + theme(plot.title = element_text(size = 11)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Polarity By Album") +
+  theme(legend.position = "none") +
+  coord_flip()
+
+polarity_chart
 ```
 
 
