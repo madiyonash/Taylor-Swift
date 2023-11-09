@@ -20,11 +20,13 @@ library(knitr)
 library(kableExtra)
 library(formattable)
 library(gridExtra)
+library(ggrepel)
+library(radarchart)
 ```
 
 ```{r}
 #Install packages as needed
-#install.packages("gridExtra")
+#install.packages("radarchart")
 ```
 
 
@@ -147,7 +149,7 @@ bing_plot <- bing_taylor %>%
   ggplot(aes(sentiment, word_count, fill = sentiment)) +
   geom_col() +
   guides(fill = FALSE) +
-  scale_fill_manual(values=c("#66a358", "#8c1c08")) +
+  scale_fill_manual(values=c("#eedba9", "#ac844c")) +
   theme_minimal() +
   labs(x = NULL, y = "Word Count") +
   scale_y_continuous(limits = c(0, 3000)) +
@@ -196,4 +198,77 @@ polarity_chart <- taylor_polarity_chart %>%
 polarity_chart
 ```
 
+
+```{r}
+plot_words_red <- nrc_taylor %>%
+  filter(album_name == "Red (Taylor's Version") %>%
+  group_by(sentiment) %>%
+  count(word, sort = TRUE) %>%
+  arrange(desc(n)) %>%
+  slice(seq_len(8)) %>% #consider top_n() from dplyr also
+  ungroup()
+
+plot_words_red %>%
+  #Set `y = 1` to just plot one variable and use word as the label
+  ggplot(aes(word, 1, label = word, fill = sentiment )) +
+  #You want the words, not the points
+  geom_point(color = "transparent") +
+  #Make sure the labels don't overlap
+  geom_label_repel(force = 1,nudge_y = .5,  
+                   direction = "y",
+                   box.padding = 0.04,
+                   segment.color = "transparent",
+                   size = 3) +
+  facet_grid(~sentiment) +
+  theme_minimal() +
+  theme(axis.text.y = element_blank(), axis.text.x = element_blank(),
+        axis.title.x = element_text(size = 6),
+        panel.grid = element_blank(), panel.background = element_blank(),
+        panel.border = element_rect("lightgray", fill = NA),
+        strip.text.x = element_text(size = 9)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Red (Taylor's Version) NRC Sentiment") +
+  coord_flip()
+```
+```{r}
+tidy_taylor %>%
+  filter(album_name %in% "Red (Taylor's Version") %>%
+  distinct(word) %>%
+  inner_join(get_sentiments("nrc")) %>%
+  ggplot(aes(x = word, fill = sentiment)) +
+  facet_grid(~sentiment) +
+  geom_bar() + #Create a bar for each word per sentiment
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank(),
+        axis.text.x = element_blank()) + #Place the words on the y-axis
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Red (Taylor's Version) Sentiment Words") +
+  coord_flip()
+```
+
+
+
+```{r}
+#Get the count of words per sentiment per album
+album_sentiment_nrc <- nrc_sub_taylor %>%
+  group_by(album_name, sentiment) %>%
+  count(album_name, sentiment) %>%
+  select(album_name, sentiment, sentiment_album_count = n)
+
+#Get the total count of sentiment words per album (not distinct)
+total_sentiment_album <- nrc_sub_taylor %>%
+  count(album_name) %>%
+  select(album_name, album_total = n)
+
+#Join the two and create a percent field
+album_radar_chart <- album_sentiment_nrc %>%
+  inner_join(total_sentiment_album, by = "album_name") %>%
+  mutate(percent = sentiment_album_count / album_total * 100 ) %>%
+  filter(album_name %in% album_levels) %>%
+  select(-sentiment_album_count, -album_total) %>%
+  spread(album_name, percent) %>%
+  chartJSRadar(showToolTipLabel = TRUE,
+               main = "NRC Album Radar")
+album_radar_chart
+```
 
