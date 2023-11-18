@@ -2,7 +2,7 @@
 title: "Data Mining Text Mining Final Project"
 author: "Madison Yonash"
 date: "2023-10-30"
-output: html_document
+output: html_notebook
 ---
 # Data Preprocessing
 
@@ -198,56 +198,6 @@ polarity_chart <- taylor_polarity_chart %>%
 polarity_chart
 ```
 
-
-```{r}
-plot_words_red <- nrc_taylor %>%
-  filter(album_name == "Red (Taylor's Version") %>%
-  group_by(sentiment) %>%
-  count(word, sort = TRUE) %>%
-  arrange(desc(n)) %>%
-  slice(seq_len(8)) %>% #consider top_n() from dplyr also
-  ungroup()
-
-plot_words_red %>%
-  #Set `y = 1` to just plot one variable and use word as the label
-  ggplot(aes(word, 1, label = word, fill = sentiment )) +
-  #You want the words, not the points
-  geom_point(color = "transparent") +
-  #Make sure the labels don't overlap
-  geom_label_repel(force = 1,nudge_y = .5,  
-                   direction = "y",
-                   box.padding = 0.04,
-                   segment.color = "transparent",
-                   size = 3) +
-  facet_grid(~sentiment) +
-  theme_minimal() +
-  theme(axis.text.y = element_blank(), axis.text.x = element_blank(),
-        axis.title.x = element_text(size = 6),
-        panel.grid = element_blank(), panel.background = element_blank(),
-        panel.border = element_rect("lightgray", fill = NA),
-        strip.text.x = element_text(size = 9)) +
-  xlab(NULL) + ylab(NULL) +
-  ggtitle("Red (Taylor's Version) NRC Sentiment") +
-  coord_flip()
-```
-```{r}
-tidy_taylor %>%
-  filter(album_name %in% "Red (Taylor's Version") %>%
-  distinct(word) %>%
-  inner_join(get_sentiments("nrc")) %>%
-  ggplot(aes(x = word, fill = sentiment)) +
-  facet_grid(~sentiment) +
-  geom_bar() + #Create a bar for each word per sentiment
-  theme_minimal() +
-  theme(panel.grid.major.x = element_blank(),
-        axis.text.x = element_blank()) + #Place the words on the y-axis
-  xlab(NULL) + ylab(NULL) +
-  ggtitle("Red (Taylor's Version) Sentiment Words") +
-  coord_flip()
-```
-
-
-
 ```{r}
 #Get the count of words per sentiment per album
 album_sentiment_nrc <- nrc_sub_taylor %>%
@@ -271,4 +221,85 @@ album_radar_chart <- album_sentiment_nrc %>%
                main = "NRC Album Radar")
 album_radar_chart
 ```
+
+
+```{r}
+tidy_taylor %>%
+  filter(track_number %in% '5') %>%
+  distinct(word) %>%
+  inner_join(get_sentiments("nrc")) %>%
+  ggplot(aes(x = word, fill = sentiment)) +
+  facet_grid(~sentiment) +
+  geom_bar() + #Create a bar for each word per sentiment
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank(),
+        axis.text.x = element_blank()) + #Place the words on the y-axis
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Track 5 Sentiment Words") +
+  theme(legend.position = "none")  +
+  coord_flip() +
+  scale_fill_taylor_d(album = "Fearless (Taylor's Version)")
+```
+
+```{r}
+tidy_taylor %>%
+  filter(track_name %in% "All Too Well (Taylor's Version)") %>%
+  distinct(word) %>%
+  inner_join(get_sentiments("nrc")) %>%
+  ggplot(aes(x = word, fill = sentiment)) +
+  facet_grid(~sentiment) +
+  geom_bar() + #Create a bar for each word per sentiment
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank(),
+        axis.text.x = element_blank()) + #Place the words on the y-axis
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("All Too Well Sentiment Words") +
+  theme(legend.position = "none")  +
+  coord_flip() +
+  scale_fill_taylor_d(album = "Fearless (Taylor's Version)")
+  
+```
+
+
+```{r}
+nrc_sub_taylor %>%
+  filter(track_name %in% c("tolerate it", "All You Had To Do Was Stay", "Dear John",
+                     "All Too Well (Taylor's Version)", "White Horse (Taylor's Version)", "Delicate", 
+                     "The Archer", "You're On Your Own, Kid", "my tears ricochet", "Cold As You")) %>%
+  count(track_name, sentiment, album_name) %>%
+  mutate(sentiment = reorder(sentiment, n), track_name = reorder(track_name, n)) %>%
+  ggplot(aes(sentiment, n, fill = sentiment)) +
+  geom_col() +
+  facet_wrap(factor(album_name, album_levels) ~ track_name, scales = "free_x") +
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(x = NULL, y = NULL) +
+  ggtitle("NRC Sentiment Track Five Analysis") +
+  coord_flip() +
+  theme(legend.position = "none")  +
+  scale_fill_taylor_d(album = "Fearless (Taylor's Version)")
+```
+
+```{r}
+nrc_sub_taylor %>%
+  filter(album_name %in% c("Taylor Swift", "Fearless (Taylor's Version)", "Speak Now",
+                           "Red (Taylor's Version)", "1989", "reputation",
+                           "Lover", "folklore", "evermore", "Midnights")) %>%
+  count(album_name, sentiment, album_release) %>%
+  mutate(sentiment = reorder(sentiment, n), album_name = reorder(album_name, n)) %>%
+  ggplot(aes(sentiment, n, fill = sentiment)) +
+  geom_col() +
+  facet_wrap(factor(album_name, album_levels) ~ album_release, scales = "free_x") +
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(x = NULL, y = NULL) +
+  ggtitle("NRC Sentiment Album Analysis") +
+  coord_flip() +
+  theme(legend.position = "none")  +
+  scale_fill_taylor_d(album = "Fearless (Taylor's Version)")
+```
+
+
 
